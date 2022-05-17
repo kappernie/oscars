@@ -1,7 +1,9 @@
-FROM python:3.7
-COPY . /app
+FROM python:3.10.3
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 WORKDIR /app
-RUN pip install -r requirements.txt
+COPY requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 EXPOSE 8501
-ENTRYPOINT ["streamlit", "run", "app.py"]
-
+ENTRYPOINT ["streamlit", "run"]
+CMD ["app.py"]
