@@ -73,6 +73,9 @@ class infer():
         self.actorface9 = cv2.imread('./fullface/gabri.jpg', cv2.IMREAD_UNCHANGED)
 
 
+        self.fullfaces = [self.actorface0,self.actorface1,self.actorface2,self.actorface3,self.actorface4,
+        self.actorface5,self.actorface6,self.actorface7,self.actorface8,self.actorface9]
+
         self.celebfaces = [self.actorfilter0,self.actorfilter1,self.actorfilter2,self.actorfilter3,self.actorfilter4,
         self.actorfilter5,self.actorfilter6,self.actorfilter7,self.actorfilter8,self.actorfilter9]
 
@@ -82,7 +85,7 @@ class infer():
         self.specifications = self.drawing_utils.DrawingSpec(thickness = 1, circle_radius = 1)
 
         
-        # self.model = load_model('./output/siamese_model') #load trained model
+        self.model = load_model('./output/siamese_model') #load trained model
 
     def applyFilter(self, source, imageFace, dstMat):
                 (imgH, imgW) = imageFace.shape[:2]
@@ -119,35 +122,53 @@ class infer():
                 overlay_part = overlay_mask 
                 output = np.uint8(cv2.addWeighted(overlay_part, 1,face_part , 1, 0.0))
                 return output
-    
+    def resize(self,img):
+        scale_percent = 60 # percent of original size
+        width = int(img.shape[1] * scale_percent / 100)
+        height = int(img.shape[0] * scale_percent / 100)
+        dim = (100, 100)
+        resized = cv2.resize(img, dim)
+        return resized
+  
 
-    def predict(self,img1,img2,name,halfmask):
+
+    def predict(self,img1):
         # make copies of images 
         imageA = img1.copy()
-        imageB = cv2.imread(img2)  #img2 is already loaded into memory
+        # imageB = cv2.imread(img2)  #img2 is already loaded into memory
 
         # load both the images and convert them to grayscale
         # imageA = img1
         # imageB = img2  #img2 is already loaded into memory
+        for img in self.fullfaces:
 
-        # add channel a dimension to both the images
-        imageA = np.expand_dims(imageA, axis=-1)
-        imageB = np.expand_dims(imageB, axis=-1)
+            imageA = self.resize(imageA)
+            img  = self.resize(img)
 
-        # add a batch dimension to both images
-        imageA = np.expand_dims(imageA, axis=0)
-        imageB = np.expand_dims(imageB, axis=0)
+            # add channel a dimension to both the images
+            imageA = np.expand_dims(imageA, axis=-1)
+            imageB = np.expand_dims(img, axis=-1)
 
-        # scale the pixel values to the range of [0, 1]
-        imageA = imageA / 255.0
-        imageB = imageB / 255.0
+            # add a batch dimension to both images
+            imageA = np.expand_dims(imageA, axis=0)
+            imageB = np.expand_dims(imageB, axis=0)
 
-        # use our siamese model to make predictions on the image pair,
-        # indicating whether or not the images belong to the same class
-        preds = self.model.predict([imageA, imageB])
+            # scale the pixel values to the range of [0, 1]
+            imageA = imageA / 255.0
+            imageB = imageB / 255.0
 
-        if preds[0][0] >= 0.5 :
-            return img1 ,name,halfmask
+            # use our siamese model to make predictions on the image pair,
+            # indicating whether or not the images belong to the same class
+            preds = self.model.predict([imageA, imageB])
+            print(preds)
+            if preds[0][0] >= 0.6 :
+                # resize both images and place them side by side 
+                img1 = self.resize(img1)
+                img2  = self.resize(img)
+                im_h = cv2.hconcat([img1 ,img2])
+                return True , im_h
+            # else:
+            #     return False,  None 
 
     def image_inference(self,img ,name = None ,halfmask = None):
        
@@ -250,22 +271,19 @@ if app == 'Face':
         # pic2 = cv2.imread('img.jpg')
         st.button('inference')
         if pic :
-           for i in range(10):
-            originalImg,actorname,actormaskmask = infer().predict(np.array(Image.open(pic)) ,\
-                 f'self.actorface{i}', f'self.actorfiltername{i}', f'self.actorfilter{i}')
-            result = infer().image_inference(originalImg,actorname,actormaskmask)
-           if result is not None:
-                st.image(result)
+        #    for i in range(10):
+        #     originalImg,actorname,actormaskmask = infer().predict(np.array(Image.open(pic)) ,\
+        #          f'self.actorface{i}', f'self.actorfiltername{i}', f'self.actorfilter{i}')
+        #     result = infer().image_inference(originalImg,actorname,actormaskmask)
+           status, match = infer().predict(np.array(Image.open(pic)))
+           if status:
+                st.image(match)
            else:
                st.error('no face found')
         elif pic1 :
-            for i in range(10):
-                originalImg,actorname,actormaskmask = infer().predict(np.array(Image.open(pic1)) ,\
-                    f'self.actorface{i}', f'self.actorfiltername{i}', f'self.actorfilter{i}')
-
-                result = infer().image_inference(originalImg,actorname,actormaskmask)
-            if result is not None:
-                st.image(result)
+            status, match = infer().predict(np.array(Image.open(pic1)))
+            if status:
+                    st.image(match)
             else:
                 st.error('no face found')
         else:
@@ -293,15 +311,15 @@ if  app == 'video':
    d1,d2,d3 = st.columns(3)
    with c1:
         run = st.checkbox('Show-webcam')
-   with c2:
-        recordgif = st.checkbox('recordGIF')
-   with c3:
-        recordvid = st.checkbox('recordVID')
+#    with c2:
+#         recordgif = st.checkbox('recordGIF')
+#    with c3:
+#         recordvid = st.checkbox('recordVID')
 
 
 
    frames = st.image([])
-   cam = 1
+   cam = 0
    cap = cv2.VideoCapture(cam)
 
    while  run :
