@@ -301,7 +301,7 @@ if  app == 'video':
 
 
    frames = st.image([])
-   cam = 0
+   cam = 1
    cap = cv2.VideoCapture(cam)
 
    while  run :
