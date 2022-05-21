@@ -1,6 +1,5 @@
-numpy
 opencv_python
-streamlit
 mediapipe
 tensorflow
 pillow 
+streamlit>=1.8.1 
