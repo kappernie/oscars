@@ -14,7 +14,7 @@ from PIL import Image
 import random
 
 
-from tensorflow.keras.models import load_model
+# from tensorflow.keras.models import load_model
 
 
 
@@ -47,6 +47,18 @@ class infer():
         self.actorfilter9 = cv2.imread('./halfface/gabri.jpg', cv2.IMREAD_UNCHANGED)
 
 
+        self.actorfilter0 = cv2.cvtColor( self.actorfilter0, cv2.COLOR_BGR2RGB)
+        self.actorfilter1 = cv2.cvtColor( self.actorfilter1, cv2.COLOR_BGR2RGB)
+        self.actorfilter2 = cv2.cvtColor( self.actorfilter2, cv2.COLOR_BGR2RGB)
+        self.actorfilter3 = cv2.cvtColor( self.actorfilter3, cv2.COLOR_BGR2RGB)
+        self.actorfilter4 = cv2.cvtColor( self.actorfilter4, cv2.COLOR_BGR2RGB)
+        self.actorfilter5 = cv2.cvtColor( self.actorfilter5, cv2.COLOR_BGR2RGB)
+        self.actorfilter6 = cv2.cvtColor( self.actorfilter6, cv2.COLOR_BGR2RGB)
+        self.actorfilter7 = cv2.cvtColor( self.actorfilter7, cv2.COLOR_BGR2RGB)
+        self.actorfilter8 = cv2.cvtColor( self.actorfilter8, cv2.COLOR_BGR2RGB)
+        self.actorfilter9 = cv2.cvtColor( self.actorfilter9, cv2.COLOR_BGR2RGB)
+
+        
         # actor names 
         self.actorfiltername0 = "Maggie Gyllenhaal"
         self.actorfiltername1 = "Andrew Garfield"
@@ -85,7 +97,7 @@ class infer():
         self.specifications = self.drawing_utils.DrawingSpec(thickness = 1, circle_radius = 1)
 
         
-        self.model = load_model('./output/siamese_model') #load trained model
+        # self.model = load_model('./output/siamese_model') #load trained model
 
     def applyFilter(self, source, imageFace, dstMat):
                 (imgH, imgW) = imageFace.shape[:2]
@@ -114,6 +126,7 @@ class infer():
             
                 # Turn the masks into three channel, so we can use them as weights
                 overlay_mask = cv2.cvtColor(warped, cv2.COLOR_BGR2RGB)
+                
                 # background_mask = cv2.cvtColor(background_mask, cv2.COLOR_BGR2RGB)
             
                 # Create a masked out face image, and masked out overlay
@@ -142,8 +155,17 @@ class infer():
         # imageB = img2  #img2 is already loaded into memory
         for img in self.fullfaces:
 
-            imageA = self.resize(imageA)
+        
+            # im = Image.fromarray((imageA * 255).astype(np.uint16))
+            # im.save("pic.png")
+
+            im = cv2.imwrite('./pic.png' , img)
+
+            imageA = self.resize(cv2.imread('./pic.png'))
             img  = self.resize(img)
+
+            # imageA = cv2.cvtColor(imageA, cv2.COLOR_BGR2GRAY)
+            # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
             # add channel a dimension to both the images
             imageA = np.expand_dims(imageA, axis=-1)
@@ -161,7 +183,7 @@ class infer():
             # indicating whether or not the images belong to the same class
             preds = self.model.predict([imageA, imageB])
             print(preds)
-            if preds[0][0] >= 0.6 :
+            if preds[0][0] >= 0.7 :
                 # resize both images and place them side by side 
                 img1 = self.resize(img1)
                 img2  = self.resize(img)
@@ -357,4 +379,28 @@ if  app == 'video':
 
 # st.download_button('download recorded gif')
 # st.download_button('download recorded video')
+
+
+import tempfile
+tiffile = tempfile.NamedTemporaryFile(delete=False)
+tiffile.name= 'demo.mp4'
+
+video_buffer =  st.file_uploader("upload video less than 10 mb for faster process",\
+    type =['mp4','mov'])
+
+if video_buffer:
+    tiffile.write(video_buffer.read())
+    vid = cv2.VideoCapture(tiffile.name)
+    while  True :
+       ret,frame = vid.read()
+       frame = cv2.cvtColor(cv2.flip(frame, 1) ,cv2.COLOR_BGR2RGB)
+    #    try:
+    #     frame = image_inference(frame)
+    #     frames.image(frame)
+    #    except PIL.UnidentifiedImageError:
+    #        pass
+       if infer().image_inference(frame) is None :
+           frames.image(frame)
+       else:
+           frames.image(infer().image_inference(frame))
 
